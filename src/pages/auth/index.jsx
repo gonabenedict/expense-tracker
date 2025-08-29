@@ -1,9 +1,31 @@
+import { auth, provider } from "../../config/firebase-config";
+import { signInWithPopup } from 'firebase/auth';
+import { useNavigate } from "react-router-dom"; 
 export const Auth = () => {
-    return <div className="login-page"><p>
+
+const navigate = useNavigate();
+
+    const SignInWithGoogle =  async () => {
+        const results = await signInWithPopup(auth, provider);
+        const authInfo = {
+            userID: results.user.uid,
+            name: results.user.displayName,
+            profilephoto: results.user.photoURL,
+            isAuth: true,
+        }
+        localStorage.setItem("auth", JSON.stringify( authInfo));
+        navigate("/expense-tracker");
+
+    };
+    return (
+    <div className="login-page">
+        <p>
         Sign in with google to continue
         </p>
-        <button className="login-with-google-btn" onClick={SignInWithGoogle}>Sign in with Google
+        <button className="login-with-google-btn" onClick={SignInWithGoogle}>
+            Sign in with Google
             
         </button>
     </div>
-}
+    );
+};
