@@ -1,58 +1,122 @@
 import { useState } from 'react'
 import { useAddTransaction } from "../../hooks/useAddTransaction";
+import { useGetTransactions } from "../../hooks/useGetTransactions";
+import { useGetUserInfo } from "../../hooks/useGetUserInfo";
+import { signOut } from 'firebase/auth';
+import { auth } from '../../config/firebase-config';
+import { useNavigate } from 'react-router-dom';
 
 export const ExpenseTracker = () => {
     const { addTransaction } = useAddTransaction();
+    const { transactions, transactionsTotals } = useGetTransactions();
+    const { name, profilePhoto } = useGetUserInfo();
+    const navigate = useNavigate();
 
-    const [descripton, setDescripton] = useState("");
-    const [transactonAmount, setTransactionAmount] = useState(0);
+    const [description, setDescription] = useState("");
+    const [transactionAmount, setTransactionAmount] = useState(0);
     const [transactionType, setTransactionType] = useState("expense");
 
-    const onSubmitn= async (e) => {
-        e.preventDefault()
-        addTransaction({descripton , transactonAmount, transactionType,})
+    const { balance, income, expenses } = transactionsTotals;
 
+    const onSubmit = async (e) => {
+        e.preventDefault();
+        addTransaction({ description, transactionAmount, transactionType });
+        setDescription("");
+        setTransactionAmount(0);
     }
+    const signUserOut = async () => {
+        try {
+            await signOut(auth);
+            localStorage.clear();
+            navigate("/")
+        } catch (error) {
+            console.error("Error signing out:", error);
+        }
+    };
 
     return (
-        <>
         <div className="expense-tracker"> 
             <div className="container">
-                <h1>Expense Tracker</h1>
+                <h1> {name}'s Expense Tracker</h1>
                 <div className="balance">
                     <h3> Your Balance</h3>
-                    <h2>$0.00</h2>
+                    {balance >= 0 ? (
+                        <h2 style={{ color: 'green' }}>${balance.toFixed(2)}</h2>
+                    ) : (
+                        <h2 style={{ color: 'red' }}>-${Math.abs(balance).toFixed(2)}</h2>
+                    )}
                 </div>
                 <div className="summary">
                     <div className="income">
                         <h4>Income</h4>
-                        <p>$0.00</p>
+                        <p>${income.toFixed(2)}</p>
                     </div>
-                    <div className="expesnses">
+                    <div className="expenses">
                         <h4> Expenses </h4>
-                        <p>$ 0.00</p>
+                        <p>${expenses.toFixed(2)}</p>
                     </div>
-                    
-
                 </div>
-                <form className="add-transaction" onSubmit={onsubmit} >
-                    <input type="text" placeholder="Descripton" required onChange={(e) => setDescripton(e.target.value)}/>
-                    <input type="number" placeholder="Amount" required onChange={(e) => setTransactionAmount(e.target.value)}/>
-                    <input type="radio" id="expense" value="expense" checked={transactionType === "expense"} onChange={(e) => setTransactionType(e.target.value)} />
+                <form className="add-transaction" onSubmit={onSubmit} >
+                    <input 
+                        type="text" 
+                        placeholder="Description" 
+                        value={description}
+                        required 
+                        onChange={(e) => setDescription(e.target.value)}
+                    />
+                    <input 
+                        type="number" 
+                        placeholder="Amount" 
+                        value={transactionAmount}
+                        required 
+                        onChange={(e) => setTransactionAmount(e.target.value)}
+                    />
+                    <input 
+                        type="radio" 
+                        id="expense" 
+                        value="expense" 
+                        checked={transactionType === "expense"} 
+                        onChange={(e) => setTransactionType(e.target.value)} 
+                    />
                     <label htmlFor="expense"> Expense</label>
-                        <input type="radio" id="income" value="income" checked={transactionType === "income"} onChange={(e) => setTransactionType(e.target.value)}/>
+                    <input 
+                        type="radio" 
+                        id="income" 
+                        value="income" 
+                        checked={transactionType === "income"} 
+                        onChange={(e) => setTransactionType(e.target.value)}
+                    />
                     <label htmlFor="income"> Income</label>
 
                     <button type="submit"> Add Transaction</button>
                 </form>
 
             </div>
-        </div>
+            {name && (
+                <div className='profile'> 
+                    {profilePhoto && <img className='profile-photo' src={profilePhoto} alt="Profile" />}
+                    <button className='sign-out-button' onClick={signUserOut}>
+                        Sign Out
+                    </button>
+                </div>
+            )}
 
-        <div className="transactions">
-            <h3> Transactions</h3>
-
+            <div className="transactions">
+                <h3> Transactions</h3>
+                <ul>
+                    {transactions && transactions.map((transaction, index) => {
+                        const { description, transactionAmount, transactionType } = transaction;
+                        return (
+                            <li key={index}>
+                                <h4> {description} </h4>
+                                <p>
+                                    $ {transactionAmount} . <label style={{color: transactionType === "expense" ? "red" : "green"}}> {transactionType}</label>
+                                </p>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </div>
         </div>
-        </>
     );
 };
